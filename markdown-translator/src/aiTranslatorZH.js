@@ -4,7 +4,7 @@ import { writeFileSync } from "./lib.js";
 import { executeLangLinkTranslator } from "./langlinkClient.js";
 
 // LangLink 配置
-const LANGLINK_APP_ID = "b9084183-a95f-4645-97bc-55ce8da9b2ff";
+const LANGLINK_APP_ID = "a60c055d-9ae1-4303-83b4-3a96e77f3026";
 
 // Token 限制配置
 const OUTPUT_TOKEN_LIMIT = 60000;
