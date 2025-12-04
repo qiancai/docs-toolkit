@@ -17,7 +17,9 @@ const replaceDeprecatedContent = (path) => {
 
 const main = async () => {
   const srcList = getMdFileList("markdowns");
-  const glossaryMatcher = await createGlossaryMatcher();
+  const glossaryMatcher = await createGlossaryMatcher(
+    "https://raw.githubusercontent.com/pingcap/docs/refs/heads/master/resources/terms.md"
+  );
   // Load variables from variables.json
   const variables = loadVariables();
   console.log("Loaded variables:", variables);
