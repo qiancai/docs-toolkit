@@ -1,0 +1,55 @@
+name: 'Filter Update Files'
+description: 'Download and filter updated files by comparing commits'
+inputs:
+  branch_name:
+    description: 'Branch name to compare commits'
+    required: false
+    default: 'master'
+  config_file:
+    description: 'Config file path for storing commit SHA'
+    required: false
+    default: 'latest_translation_commit.json'
+  working_directory:
+    description: 'Working directory path'
+    required: false
+    default: '.'
+  filter_by_cloud_toc:
+    description: 'Filter files by cloud TOC'
+    required: false
+    default: 'false'
+  files:
+    description: 'Comma-separated list of specific files to download (if provided, uses file mode instead of commit comparison)'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Install dependencies
+      shell: bash
+      run: npm i
+
+    - name: Filter update files
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        CLOUD_FLAG=""
+        if [ "${{ inputs.filter_by_cloud_toc }}" == "true" ]; then
+          CLOUD_FLAG="--filter-by-cloud-toc"
+        fi
+        FILES_FLAG=""
+        if [ -n "${{ inputs.files }}" ]; then
+          FILES_FLAG="--files ${{ inputs.files }}"
+        fi
+        node ./index.js \
+          --branch "${{ inputs.branch_name }}" \
+          --config "${{ inputs.config_file }}" \
+          --working-dir "${{ inputs.working_directory }}" \
+          $CLOUD_FLAG \
+          $FILES_FLAG
+

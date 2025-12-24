@@ -28,7 +28,7 @@ const pSum = {
   _data: [],
 };
 
-const translateSingleMdToJa = async (filePath) => {
+const translateSingleMdToJa = async (filePath, outputDir = "output") => {
   const mdFileContent = fs.readFileSync(filePath);
   const mdAst = fromMarkdown(mdFileContent, {
     // extensions: [frontmatter(["yaml", "toml"]), gfmTable, gfm()],
@@ -76,7 +76,7 @@ const translateSingleMdToJa = async (filePath) => {
     ],
   });
   const result = newFile.replaceAll(/(#+.+)(\\{)(#.+})/g, `$1{$3`);
-  writeFileSync(`output/${filePath}`, result);
+  writeFileSync(`${outputDir}/${filePath}`, result);
 };
 
 const copyable = /{{< copyable\s+(.+)\s+>}}\r?\n/g;
@@ -113,23 +113,42 @@ const replaceDeprecatedContent = (path) => {
 // footnote
 // footnoteReference
 
-const main = async () => {
-  const srcList = getMdFileList("markdowns");
+const main = async (dir = "markdowns", outputDir = "output") => {
+  const srcList = getMdFileList(dir);
   // console.log(srcList);
 
   // Load variables from variables.json
-  const variables = loadVariables();
+  const variables = loadVariables(dir);
   console.log("Loaded variables:", variables);
 
   for (let a of srcList) {
     console.log(a);
     variablesReplace(variables, a);
     replaceDeprecatedContent(a);
-    await translateSingleMdToJa(a);
+    await translateSingleMdToJa(a, outputDir);
     // break;
   }
 
   // console.log(pSum);
 };
 
-main();
+// Parse command line arguments
+const getInputDir = () => {
+  const inputIndex = process.argv.indexOf("--input-dir");
+  if (inputIndex !== -1 && process.argv[inputIndex + 1]) {
+    return process.argv[inputIndex + 1];
+  }
+  return "markdowns";
+};
+
+const getOutputDir = () => {
+  const outputIndex = process.argv.indexOf("--output-dir");
+  if (outputIndex !== -1 && process.argv[outputIndex + 1]) {
+    return process.argv[outputIndex + 1];
+  }
+  return "output";
+};
+
+const dir = getInputDir();
+const outputDir = getOutputDir();
+main(dir, outputDir);

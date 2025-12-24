@@ -6,8 +6,8 @@ function getValueByPath(obj, path) {
 }
 const variablePattern = /{{{\s*\.(.+?)\s*}}}/g;
 
-export const loadVariables = () => {
-  const variablesPath = path.join("markdowns", "variables.json");
+export const loadVariables = (dir = "markdowns") => {
+  const variablesPath = path.join(dir, "variables.json");
   try {
     const variablesContent = fs.readFileSync(variablesPath, "utf8");
     return JSON.parse(variablesContent);
