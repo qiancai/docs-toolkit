@@ -14,7 +14,7 @@ const replaceDeprecatedContent = (path) => {
   fs.writeFileSync(path, mdFileContent.replace(copyable, ""));
 };
 
-const main = async (dir = "markdowns") => {
+const main = async (dir = "markdowns", outputDir = "output") => {
   const srcList = getMdFileList(dir);
   const glossaryMatcher = await createGlossaryMatcher(
     "https://raw.githubusercontent.com/pingcap/docs/refs/heads/master/resources/terms.md"
@@ -28,7 +28,7 @@ const main = async (dir = "markdowns") => {
     variablesReplace(variables, filePath);
     replaceDeprecatedContent(filePath);
     try {
-      await translateMDFile(filePath, glossaryMatcher);
+      await translateMDFile(filePath, glossaryMatcher, outputDir);
     } catch (e) {
       // await gcpTranslator(filePath);
       console.error(e);
@@ -36,14 +36,23 @@ const main = async (dir = "markdowns") => {
   }
 };
 
-// Parse command line arguments for --input
+// Parse command line arguments
 const getInputDir = () => {
-  const inputIndex = process.argv.indexOf("--input");
+  const inputIndex = process.argv.indexOf("--input-dir");
   if (inputIndex !== -1 && process.argv[inputIndex + 1]) {
     return process.argv[inputIndex + 1];
   }
   return "markdowns";
 };
 
+const getOutputDir = () => {
+  const outputIndex = process.argv.indexOf("--output-dir");
+  if (outputIndex !== -1 && process.argv[outputIndex + 1]) {
+    return process.argv[outputIndex + 1];
+  }
+  return "output";
+};
+
 const dir = getInputDir();
-main(dir);
+const outputDir = getOutputDir();
+main(dir, outputDir);

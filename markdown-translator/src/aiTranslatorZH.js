@@ -2,6 +2,7 @@ import * as fs from "fs";
 import { get_encoding } from "tiktoken";
 import { writeFileSync } from "./lib.js";
 import { executeLangLinkTranslator } from "./langlinkClient.js";
+import { gcpTranslator } from "./gcpTranslator.js";
 
 // LangLink 配置
 const LANGLINK_APP_ID = "d57cc1a9-2b2a-45c7-9119-ac798285b2ab";
@@ -81,8 +82,13 @@ const processMetaInfo = (content) => {
  * 翻译Markdown文件
  * @param {string} filePath - 文件路径
  * @param {Function} glossaryMatcher - 词汇表匹配器函数
+ * @param {string} outputDir - 输出目录
  */
-export const translateMDFile = async (filePath, glossaryMatcher = null) => {
+export const translateMDFile = async (
+  filePath,
+  glossaryMatcher = null,
+  outputDir = "output"
+) => {
   try {
     // 读取文件内容
     const content = fs.readFileSync(filePath).toString();
@@ -98,7 +104,7 @@ export const translateMDFile = async (filePath, glossaryMatcher = null) => {
       );
       console.log(`文件大小: ${Math.round(inputTokens * 0.75)} 字符`);
       // 如果超过限制，则使用gcp翻译
-      await gcpTranslator(filePath);
+      await gcpTranslator(filePath, outputDir);
       return;
     }
 
@@ -115,7 +121,7 @@ export const translateMDFile = async (filePath, glossaryMatcher = null) => {
     const processedContent = processMetaInfo(translatedContent);
 
     // 写入输出文件
-    writeFileSync(`output/${filePath}`, processedContent);
+    writeFileSync(`${outputDir}/${filePath}`, processedContent);
 
     console.log(`翻译完成: ${filePath}`);
   } catch (error) {
