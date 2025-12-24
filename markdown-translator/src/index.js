@@ -3,7 +3,6 @@ import "dotenv/config";
 
 import { getMdFileList } from "./lib.js";
 import { translateMDFile } from "./aiTranslatorZH.js";
-import { gcpTranslator } from "./gcpTranslator.js";
 import { createGlossaryMatcher } from "./glossary.js";
 import { loadVariables, variablesReplace } from "./variables.js";
 
@@ -15,13 +14,13 @@ const replaceDeprecatedContent = (path) => {
   fs.writeFileSync(path, mdFileContent.replace(copyable, ""));
 };
 
-const main = async () => {
-  const srcList = getMdFileList("markdowns");
+const main = async (dir = "markdowns") => {
+  const srcList = getMdFileList(dir);
   const glossaryMatcher = await createGlossaryMatcher(
     "https://raw.githubusercontent.com/pingcap/docs/refs/heads/master/resources/terms.md"
   );
   // Load variables from variables.json
-  const variables = loadVariables();
+  const variables = loadVariables(dir);
   console.log("Loaded variables:", variables);
 
   for (let filePath of srcList) {
@@ -37,4 +36,14 @@ const main = async () => {
   }
 };
 
-main();
+// Parse command line arguments for --input
+const getInputDir = () => {
+  const inputIndex = process.argv.indexOf("--input");
+  if (inputIndex !== -1 && process.argv[inputIndex + 1]) {
+    return process.argv[inputIndex + 1];
+  }
+  return "markdowns";
+};
+
+const dir = getInputDir();
+main(dir);

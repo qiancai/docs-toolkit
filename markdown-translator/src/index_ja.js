@@ -113,12 +113,12 @@ const replaceDeprecatedContent = (path) => {
 // footnote
 // footnoteReference
 
-const main = async () => {
-  const srcList = getMdFileList("markdowns");
+const main = async (dir = "markdowns") => {
+  const srcList = getMdFileList(dir);
   // console.log(srcList);
 
   // Load variables from variables.json
-  const variables = loadVariables();
+  const variables = loadVariables(dir);
   console.log("Loaded variables:", variables);
 
   for (let a of srcList) {
@@ -132,4 +132,14 @@ const main = async () => {
   // console.log(pSum);
 };
 
-main();
+// Parse command line arguments for --input
+const getInputDir = () => {
+  const inputIndex = process.argv.indexOf("--input");
+  if (inputIndex !== -1 && process.argv[inputIndex + 1]) {
+    return process.argv[inputIndex + 1];
+  }
+  return "markdowns";
+};
+
+const dir = getInputDir();
+main(dir);
