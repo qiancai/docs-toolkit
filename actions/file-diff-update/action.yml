@@ -1,10 +1,6 @@
 name: 'Filter Update Files'
 description: 'Download and filter updated files by comparing commits'
 inputs:
-  branch_name:
-    description: 'Branch name to compare commits'
-    required: false
-    default: 'master'
   config_file:
     description: 'Config file path for storing commit SHA'
     required: false
@@ -48,7 +44,6 @@ runs:
           FILES_FLAG="--files ${{ inputs.files }}"
         fi
         node ${{ github.action_path }}/index.js \
-          --branch "${{ inputs.branch_name }}" \
           --config "${{ inputs.config_file }}" \
           --working-dir "${{ inputs.working_directory }}" \
           $CLOUD_FLAG \
