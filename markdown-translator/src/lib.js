@@ -32,8 +32,18 @@ const getMds = (src) => {
   return glob.sync(src + "/**/*.md");
 };
 
-export const getMdFileList = (prefix) => {
-  return getMds(prefix);
+export const getMdFileList = (inputDir, outputDir = "output") => {
+  const filePaths = getMds(inputDir);
+  return filePaths.map((filePath) => {
+    // Get relative path from inputDir
+    const relativePath = path.relative(inputDir, filePath);
+    // Generate output path by joining outputDir with relative path
+    const outputFilePath = path.join(outputDir, relativePath);
+    return {
+      filePath,
+      outputFilePath,
+    };
+  });
 };
 
 export const writeFileSync = (destPath, fileContent) => {

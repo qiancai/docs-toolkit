@@ -15,7 +15,7 @@ const replaceDeprecatedContent = (path) => {
 };
 
 const main = async (dir = "markdowns", outputDir = "output") => {
-  const srcList = getMdFileList(dir);
+  const srcList = getMdFileList(dir, outputDir);
   const glossaryMatcher = await createGlossaryMatcher(
     "https://raw.githubusercontent.com/pingcap/docs/refs/heads/master/resources/terms.md"
   );
@@ -23,14 +23,14 @@ const main = async (dir = "markdowns", outputDir = "output") => {
   const variables = loadVariables(dir);
   console.log("Loaded variables:", variables);
 
-  for (let filePath of srcList) {
+  for (let { filePath, outputFilePath } of srcList) {
     console.log(filePath);
     variablesReplace(variables, filePath);
     replaceDeprecatedContent(filePath);
     try {
-      await translateMDFile(filePath, glossaryMatcher, outputDir);
+      await translateMDFile(filePath, glossaryMatcher, outputFilePath);
     } catch (e) {
-      // await gcpTranslator(filePath);
+      // await gcpTranslator(filePath, outputFilePath);
       console.error(e);
     }
   }

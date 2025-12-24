@@ -82,12 +82,12 @@ const processMetaInfo = (content) => {
  * 翻译Markdown文件
  * @param {string} filePath - 文件路径
  * @param {Function} glossaryMatcher - 词汇表匹配器函数
- * @param {string} outputDir - 输出目录
+ * @param {string} outputFilePath - 输出文件路径
  */
 export const translateMDFile = async (
   filePath,
   glossaryMatcher = null,
-  outputDir = "output"
+  outputFilePath
 ) => {
   try {
     // 读取文件内容
@@ -104,7 +104,7 @@ export const translateMDFile = async (
       );
       console.log(`文件大小: ${Math.round(inputTokens * 0.75)} 字符`);
       // 如果超过限制，则使用gcp翻译
-      await gcpTranslator(filePath, outputDir);
+      await gcpTranslator(filePath, outputFilePath);
       return;
     }
 
@@ -121,7 +121,7 @@ export const translateMDFile = async (
     const processedContent = processMetaInfo(translatedContent);
 
     // 写入输出文件
-    writeFileSync(`${outputDir}/${filePath}`, processedContent);
+    writeFileSync(outputFilePath, processedContent);
 
     console.log(`翻译完成: ${filePath}`);
   } catch (error) {
