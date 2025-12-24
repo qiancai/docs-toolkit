@@ -31,6 +31,7 @@ runs:
 
     - name: Install dependencies
       shell: bash
+      working-directory: ${{ github.action_path }}
       run: npm i
 
     - name: Filter update files
@@ -46,7 +47,7 @@ runs:
         if [ -n "${{ inputs.files }}" ]; then
           FILES_FLAG="--files ${{ inputs.files }}"
         fi
-        node ./index.js \
+        node ${{ github.action_path }}/index.js \
           --branch "${{ inputs.branch_name }}" \
           --config "${{ inputs.config_file }}" \
           --working-dir "${{ inputs.working_directory }}" \
