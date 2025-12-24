@@ -27,7 +27,7 @@ const pSum = {
   _data: [],
 };
 
-export const gcpTranslator = async (filePath, outputDir = "output") => {
+export const gcpTranslator = async (filePath, outputFilePath) => {
   const mdFileContent = fs.readFileSync(filePath);
   const mdAst = fromMarkdown(mdFileContent, {
     // extensions: [frontmatter(["yaml", "toml"]), gfmTable, gfm()],
@@ -75,7 +75,7 @@ export const gcpTranslator = async (filePath, outputDir = "output") => {
     ],
   });
   const result = newFile.replaceAll(/(#+.+)(\\{)(#.+})/g, `$1{$3`);
-  writeFileSync(`${outputDir}/${filePath}`, result);
+  writeFileSync(outputFilePath, result);
 };
 
 const copyable = /{{< copyable\s+(.+)\s+>}}\r?\n/g;
