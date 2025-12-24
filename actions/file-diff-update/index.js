@@ -13,7 +13,6 @@ const WHITELIST_FILENAMES = ["variables.json"];
 // Configuration object
 const createConfig = (options = {}) => {
   const {
-    branch_name = "master",
     config_file = "latest_translation_commit.json",
     working_directory = process.cwd(),
     filter_by_cloud_toc = false,
@@ -21,7 +20,6 @@ const createConfig = (options = {}) => {
   } = options;
 
   return {
-    branch_name,
     config_file,
     working_directory: path.resolve(working_directory),
     filter_by_cloud_toc,
@@ -36,7 +34,6 @@ const getConfigPath = (config, relativePath) => {
 const parseArgs = () => {
   const args = process.argv.slice(2);
   const config = {
-    branch_name: "master",
     config_file: "latest_translation_commit.json",
     working_directory: process.cwd(),
     filter_by_cloud_toc: false,
@@ -45,9 +42,7 @@ const parseArgs = () => {
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if (arg === "--branch" && i + 1 < args.length) {
-      config.branch_name = args[++i];
-    } else if (arg === "--config" && i + 1 < args.length) {
+    if (arg === "--config" && i + 1 < args.length) {
       config.config_file = args[++i];
     } else if (arg === "--working-dir" && i + 1 < args.length) {
       config.working_directory = args[++i];
@@ -75,7 +70,7 @@ const getLocalCfg = (config) => {
   const configPath = getConfigPath(config, config.config_file);
   if (!fs.existsSync(configPath)) {
     console.log(`Config file not found: ${configPath}, using defaults`);
-    return { target: config.branch_name, sha: "" };
+    return { target: "master", sha: "" };
   }
   const fileContent = fs.readFileSync(configPath);
   const data = JSON.parse(fileContent);
