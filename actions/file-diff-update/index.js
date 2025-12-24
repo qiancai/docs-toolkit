@@ -2,7 +2,7 @@ import * as fs from "fs";
 import path from "path";
 import axios from "axios";
 import { Octokit } from "octokit";
-import { CLOUD_TOC_LIST, getAllCloudMdList } from "./getMdListByTOC.js";
+import { CLOUD_TOC_LIST, getAllMdList } from "./getMdListByTOC.js";
 import { ensureVariablesJson } from "./ensureVariablesJson.js";
 
 const GH_TOKEN = process.env.GH_TOKEN || "";
@@ -184,13 +184,13 @@ const deleteFileInWorkingDir = (config, relativePath) => {
 // get the file list from the toc file
 const getCloudTOCFiles = (config) => {
   // Generate tmp TOC paths from CLOUD_TOC_LIST
-  const tmpTocFiles = getAllCloudMdList(
+  const tmpTocFiles = getAllMdList(
     CLOUD_TOC_LIST.map((toc) => getConfigPath(config, `tmp/${toc}`))
   );
 
   // Generate regular TOC paths from CLOUD_TOC_LIST
   const cloudTocList = CLOUD_TOC_LIST.map((toc) => getConfigPath(config, toc));
-  const tocFiles = getAllCloudMdList(cloudTocList);
+  const tocFiles = getAllMdList(cloudTocList);
 
   // Convert to Set
   const tmpTocFilesSet = new Set(tmpTocFiles);
