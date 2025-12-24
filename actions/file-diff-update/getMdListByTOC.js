@@ -67,11 +67,3 @@ export const getAllMdList = (tocFiles) => {
 
   return [...new Set(allLinks)];
 };
-
-export const getAllCloudMdList = (tocFiles = CLOUD_TOC_LIST) => {
-  // Get all MD files from multiple TOCs and deduplicate
-  const allFilteredLinkLists = tocFiles.map((tocFile) => getAllMdList(tocFile));
-  const flattenedList = allFilteredLinkLists.flat();
-  const allFilePaths = [...new Set(flattenedList)]; // Deduplicate
-  return allFilePaths;
-};
