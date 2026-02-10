@@ -13,6 +13,9 @@ inputs:
     description: 'Filter files by cloud TOC'
     required: false
     default: 'false'
+  folder:
+    description: 'Comma-separated list of folders to scope the diff to'
+    required: false
   files:
     description: 'Comma-separated list of specific files to download (if provided, uses file mode instead of commit comparison)'
     required: false
@@ -35,17 +38,14 @@ runs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
-        CLOUD_FLAG=""
+        ARGS=(--config "${{ inputs.config_file }}" --working-dir "${{ inputs.working_directory }}")
         if [ "${{ inputs.filter_by_cloud_toc }}" == "true" ]; then
-          CLOUD_FLAG="--filter-by-cloud-toc"
+          ARGS+=(--filter-by-cloud-toc)
         fi
-        FILES_FLAG=""
         if [ -n "${{ inputs.files }}" ]; then
-          FILES_FLAG="--files ${{ inputs.files }}"
+          ARGS+=(--files "${{ inputs.files }}")
         fi
-        node ${{ github.action_path }}/index.js \
-          --config "${{ inputs.config_file }}" \
-          --working-dir "${{ inputs.working_directory }}" \
-          $CLOUD_FLAG \
-          $FILES_FLAG
-
+        if [ -n "${{ inputs.folder }}" ]; then
+          ARGS+=(--folder "${{ inputs.folder }}")
+        fi
+        node ${{ github.action_path }}/index.js "${ARGS[@]}"

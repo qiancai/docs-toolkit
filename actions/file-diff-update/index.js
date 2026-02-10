@@ -10,12 +10,59 @@ const GH_TOKEN = process.env.GH_TOKEN || "";
 // whitelist files: allow download non-md files
 const WHITELIST_FILENAMES = ["variables.json"];
 
+const parseCommaSeparatedList = (value) => {
+  if (typeof value !== "string") {
+    return [];
+  }
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+};
+
+const normalizeRepoPath = (value) => {
+  if (typeof value !== "string") {
+    return "";
+  }
+  return value.replace(/\\/g, "/").replace(/^\/+/, "").replace(/^\.\//, "");
+};
+
+const normalizeFolder = (folder) => {
+  const normalized = normalizeRepoPath(folder).replace(/\/+$/, "");
+  if (normalized === "" || normalized === ".") {
+    return "";
+  }
+  return normalized;
+};
+
+const normalizeFolders = (folders) => {
+  if (!Array.isArray(folders)) {
+    return [];
+  }
+  const normalized = folders.map(normalizeFolder).filter(Boolean);
+  return Array.from(new Set(normalized));
+};
+
+const isPathInFolders = (filePath, folders) => {
+  const scopedFolders = normalizeFolders(folders);
+  if (scopedFolders.length === 0) {
+    return true;
+  }
+
+  const normalizedPath = normalizeRepoPath(filePath);
+  return scopedFolders.some(
+    (folder) =>
+      normalizedPath === folder || normalizedPath.startsWith(`${folder}/`)
+  );
+};
+
 // Configuration object
 const createConfig = (options = {}) => {
   const {
     config_file = "latest_translation_commit.json",
     working_directory = process.cwd(),
     filter_by_cloud_toc = false,
+    folders = [],
     files = [],
   } = options;
 
@@ -23,6 +70,7 @@ const createConfig = (options = {}) => {
     config_file,
     working_directory: path.resolve(working_directory),
     filter_by_cloud_toc,
+    folders: normalizeFolders(folders),
     files,
   };
 };
@@ -37,6 +85,7 @@ const parseArgs = () => {
     config_file: "latest_translation_commit.json",
     working_directory: process.cwd(),
     filter_by_cloud_toc: false,
+    folders: [],
     files: [],
   };
 
@@ -48,12 +97,15 @@ const parseArgs = () => {
       config.working_directory = args[++i];
     } else if (arg === "--filter-by-cloud-toc") {
       config.filter_by_cloud_toc = true;
+    } else if (
+      (arg === "--folder" || arg === "--folders") &&
+      i + 1 < args.length
+    ) {
+      const foldersArg = args[++i];
+      config.folders = parseCommaSeparatedList(foldersArg);
     } else if (arg === "--files" && i + 1 < args.length) {
       const filesArg = args[++i];
-      config.files = filesArg
-        .split(",")
-        .map((file) => file.trim())
-        .filter((file) => file.length > 0);
+      config.files = parseCommaSeparatedList(filesArg);
     }
   }
 
@@ -286,32 +338,44 @@ const handleFiles = async (config, fileList = []) => {
   for (let file of fileList) {
     const { status, raw_url, filename, previous_filename } = file;
 
-    // check if the file should be processed
-    const shouldProcessFile = () => {
+    const shouldProcessFile = (filePath) => {
       // md files are always processed
-      if (filename.endsWith(".md")) {
+      if (filePath.endsWith(".md")) {
         return true;
       }
 
       // check if the file is in the whitelist
-      return WHITELIST_FILENAMES.includes(filename);
+      return WHITELIST_FILENAMES.includes(path.basename(filePath));
     };
-
-    if (!shouldProcessFile()) {
-      continue;
-    }
 
     switch (status) {
       case "added":
       case "modified":
+        if (!shouldProcessFile(filename) || !isPathInFolders(filename, config.folders)) {
+          break;
+        }
         await downloadFile(raw_url, getConfigPath(config, `tmp/${filename}`));
         break;
       case "removed":
+        if (!shouldProcessFile(filename) || !isPathInFolders(filename, config.folders)) {
+          break;
+        }
         deleteFileInWorkingDir(config, filename);
         break;
       case "renamed":
-        deleteFileInWorkingDir(config, previous_filename);
-        await downloadFile(raw_url, getConfigPath(config, `tmp/${filename}`));
+        if (
+          previous_filename &&
+          shouldProcessFile(previous_filename) &&
+          isPathInFolders(previous_filename, config.folders)
+        ) {
+          deleteFileInWorkingDir(config, previous_filename);
+        }
+        if (
+          shouldProcessFile(filename) &&
+          isPathInFolders(filename, config.folders)
+        ) {
+          await downloadFile(raw_url, getConfigPath(config, `tmp/${filename}`));
+        }
         break;
     }
   }
@@ -324,13 +388,16 @@ const handleSpecifiedFiles = async (config, fileList) => {
 
   // filter files by extension and whitelist
   const filesToProcess = fileList.filter((filename) => {
+    if (!isPathInFolders(filename, config.folders)) {
+      return false;
+    }
     // md files are always processed
     if (filename.endsWith(".md")) {
       return true;
     }
 
     // check if the file is in the whitelist
-    return WHITELIST_FILENAMES.includes(filename);
+    return WHITELIST_FILENAMES.includes(path.basename(filename));
   });
   console.log(`Files to process: ${filesToProcess.length}`);
   console.log("Files:", filesToProcess);
