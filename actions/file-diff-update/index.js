@@ -235,21 +235,20 @@ const deleteFileInWorkingDir = (config, relativePath) => {
 
 // get the file list from the toc file
 const getCloudTOCFiles = (config) => {
-  // Generate tmp TOC paths from CLOUD_TOC_LIST
-  const tmpTocFiles = getAllMdList(
-    CLOUD_TOC_LIST.map((toc) => getConfigPath(config, `tmp/${toc}`))
-  );
+  const finalTocFiles = new Set();
 
-  // Generate regular TOC paths from CLOUD_TOC_LIST
-  const cloudTocList = CLOUD_TOC_LIST.map((toc) => getConfigPath(config, toc));
-  const tocFiles = getAllMdList(cloudTocList);
+  // Resolve TOC paths one-by-one:
+  // - Use tmp/<toc> if it exists
+  // - Otherwise use <working_directory>/<toc>
+  for (const toc of CLOUD_TOC_LIST) {
+    const tmpTocPath = getConfigPath(config, `tmp/${toc}`);
+    const tocPath = getConfigPath(config, toc);
+    const resolvedTocPath = fs.existsSync(tmpTocPath) ? tmpTocPath : tocPath;
 
-  // Convert to Set
-  const tmpTocFilesSet = new Set(tmpTocFiles);
-  const tocFilesSet = new Set(tocFiles);
-
-  // Use tmpTocFiles if not empty, otherwise use tocFiles
-  const finalTocFiles = tmpTocFilesSet.size > 0 ? tmpTocFilesSet : tocFilesSet;
+    for (const file of getAllMdList(resolvedTocPath)) {
+      finalTocFiles.add(file);
+    }
+  }
 
   if (finalTocFiles.size === 0) {
     console.log(
