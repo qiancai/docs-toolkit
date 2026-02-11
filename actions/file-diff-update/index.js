@@ -10,6 +10,9 @@ const GH_TOKEN = process.env.GH_TOKEN || "";
 // whitelist files: allow download non-md files
 const WHITELIST_FILENAMES = ["variables.json"];
 
+// filter whitelist: keep these files even if not in TOC
+const WHITELIST = ["_index.md"];
+
 const parseCommaSeparatedList = (value) => {
   if (typeof value !== "string") {
     return [];
@@ -311,6 +314,11 @@ const filterFilesByTOC = (config) => {
 
     // only check markdown files, non-markdown files are kept
     if (relativePath.endsWith(".md")) {
+      if (WHITELIST.includes(path.basename(relativePath))) {
+        console.log(`Keeping whitelisted markdown file: ${relativePath}`);
+        keptCount++;
+        continue;
+      }
       // check if the markdown file is in the toc
       if (normalizedTocFiles.has(relativePath)) {
         console.log(`Keeping markdown file in TOC: ${relativePath}`);
