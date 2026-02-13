@@ -4,6 +4,9 @@
   "main": "index.js",
   "license": "MIT",
   "type": "module",
+  "scripts": {
+    "test": "node --test test/frontmatterAliases.test.js"
+  },
   "dependencies": {
     "@google-cloud/translate": "^9.2.1",
     "ahocorasick": "^1.0.2",

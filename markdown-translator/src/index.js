@@ -5,6 +5,7 @@ import { getMdFileList } from "./lib.js";
 import { translateMDFile } from "./aiTranslatorZH.js";
 import { createGlossaryMatcher } from "./glossary.js";
 import { loadVariables, variablesReplace } from "./variables.js";
+import { postProcessFileFrontmatterAliases } from "./frontmatterAliases.js";
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
@@ -29,6 +30,7 @@ const main = async (dir = "markdowns", outputDir = "output") => {
     replaceDeprecatedContent(filePath);
     try {
       await translateMDFile(filePath, glossaryMatcher, outputFilePath);
+      postProcessFileFrontmatterAliases(outputFilePath, "zh");
     } catch (e) {
       // await gcpTranslator(filePath, outputFilePath);
       console.error(e);
