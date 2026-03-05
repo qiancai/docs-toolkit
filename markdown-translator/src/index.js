@@ -6,6 +6,7 @@ import { translateMDFile } from "./aiTranslatorZH.js";
 import { createGlossaryMatcher } from "./glossary.js";
 import { loadVariables, variablesReplace } from "./variables.js";
 import { postProcessFileFrontmatterAliases } from "./frontmatterAliases.js";
+import { postProcessFileGithubMentions } from "./GithubMentions.js";
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
@@ -31,6 +32,7 @@ const main = async (dir = "markdowns", outputDir = "output") => {
     try {
       await translateMDFile(filePath, glossaryMatcher, outputFilePath);
       postProcessFileFrontmatterAliases(outputFilePath, "zh");
+      postProcessFileGithubMentions(outputFilePath);
     } catch (e) {
       // await gcpTranslator(filePath, outputFilePath);
       console.error(e);
