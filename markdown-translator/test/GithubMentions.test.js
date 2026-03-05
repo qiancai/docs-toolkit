@@ -11,7 +11,7 @@ import {
 
 test("fixMarkdownGithubMentions: replaces github profile mention links", () => {
   const input = "Thanks @ [Aki](https://github.com/aki).\n";
-  const expected = "Thanks @ aki.\n";
+  const expected = "Thanks @ [aki](https://github.com/aki).\n";
 
   assert.equal(fixMarkdownGithubMentions(input), expected);
 });
@@ -24,7 +24,8 @@ test("fixMarkdownGithubMentions: leaves non-github links unchanged", () => {
 test("fixMarkdownGithubMentions: handles multiple mentions in one line", () => {
   const input =
     "Reviewers: @ [Alpha](https://github.com/alpha), @ [Beta](https://github.com/beta/)\n";
-  const expected = "Reviewers: @ alpha, @ beta\n";
+  const expected =
+    "Reviewers: @ [alpha](https://github.com/alpha), @ [beta](https://github.com/beta)\n";
   assert.equal(fixMarkdownGithubMentions(input), expected);
 });
 
@@ -43,7 +44,10 @@ test("postProcessFileGithubMentions: updates file in-place", () => {
     postProcessFileGithubMentions(filePath);
 
     const updated = fs.readFileSync(filePath, "utf8");
-    assert.equal(updated, "Reviewers: @ alpha, @ beta\n");
+    assert.equal(
+      updated,
+      "Reviewers: @ [alpha](https://github.com/alpha), @ [beta](https://github.com/beta)\n"
+    );
 
     assert.doesNotThrow(() =>
       postProcessFileGithubMentions(path.join(tempDir, "missing.md"))
