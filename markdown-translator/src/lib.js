@@ -23,7 +23,6 @@ import { gfmFromMarkdown, gfmToMarkdown } from "mdast-util-gfm";
 import { toMarkdown } from "mdast-util-to-markdown";
 
 import { translateSingleText } from "./gcpTranslate.js";
-import { createGitHubIdProtector } from "./githubIdProtector.js";
 
 const generateNoTranslateTag = (src) => {
   return `<span translate="no">{{B-NOTRANSLATE-${src}-NOTRANSLATE-E}}</span>`;
@@ -165,11 +164,7 @@ const handleFrontMatter = async (yamlNode) => {
     // } else if (keyName === "summary") {
     if (keyName === "summary") {
       const itemVal = frontmatterItem.split("summary:").pop();
-      const { text: protectedSummary, restore } = createGitHubIdProtector(
-        itemVal
-      );
-      const [translatedValRaw] = await translateSingleText(protectedSummary);
-      const translatedVal = restore(translatedValRaw);
+      const [translatedVal] = await translateSingleText(itemVal);
       if (translatedVal) {
         result.push(`summary: ${translatedVal.replace("`", "")}`);
       }
@@ -187,11 +182,8 @@ const handleHTML = async (htmlNode) => {
     // GCP Glossary will be missing in the title content
     !HTMLStr.includes('title="')
   ) {
-    const { text: protectedHTML, restore } = createGitHubIdProtector(HTMLStr, {
-      useNoTranslateSpan: true,
-    });
-    const [output] = await translateSingleText(protectedHTML, "text/html");
-    htmlNode.value = restore(output);
+    const [output] = await translateSingleText(HTMLStr, "text/html");
+    htmlNode.value = output;
   }
 };
 
@@ -202,15 +194,9 @@ const handleParagraph = async (paragraphNode) => {
   const paragraphHtml = await mdSnippet2html(paragraphNode);
   const trimParagraphHtml = trimHtmlTags(paragraphHtml);
   const HTMLStr = updateHTMLNoTransStr(trimParagraphHtml);
-  const { text: protectedHTML, restore } = createGitHubIdProtector(HTMLStr, {
-    useNoTranslateSpan: true,
-  });
-  const [output] = await translateSingleText(protectedHTML, "text/html");
-  const restoredOutput = restore(output);
+  const [output] = await translateSingleText(HTMLStr, "text/html");
   // console.log(translatedHTMLStr);
-  const translatedHTMLStr = undoUpdateHTMLNoTransStr(
-    inlineHtml2mdStr(restoredOutput)
-  );
+  const translatedHTMLStr = undoUpdateHTMLNoTransStr(inlineHtml2mdStr(output));
   const translatedHTMLStrWithBr = updateBrTag(translatedHTMLStr);
   const newChildren = retriveByPlaceholder(translatedHTMLStrWithBr, metadata);
   paragraphNode.children = newChildren;
@@ -315,14 +301,7 @@ const concatHeadingCustomId = async (headingNode) => {
 const handleHeadings = async (node) => {
   await headingTextExactCustomId(node);
   const HTMLStr = node.HTMLStr;
-  const { text: protectedHTML, restore } = createGitHubIdProtector(HTMLStr, {
-    useNoTranslateSpan: true,
-  });
-  const [translatedHTMLStrRaw] = await translateSingleText(
-    protectedHTML,
-    "text/html"
-  );
-  const translatedHTMLStr = restore(translatedHTMLStrRaw);
+  const [translatedHTMLStr] = await translateSingleText(HTMLStr, "text/html");
   node.children = [
     {
       type: "html",
