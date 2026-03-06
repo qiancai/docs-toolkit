@@ -23,6 +23,7 @@ import { visit } from "unist-util-visit";
 import { getMdFileList, writeFileSync, handleAstNode } from "./lib.js";
 import { loadVariables, variablesReplace } from "./variables.js";
 import { postProcessFileFrontmatterAliases } from "./frontmatterAliases.js";
+import { postProcessFileGithubMentions } from "./GithubMentions.js";
 
 const pSum = {
   sum: 0,
@@ -128,6 +129,7 @@ const main = async (dir = "markdowns", outputDir = "output") => {
     replaceDeprecatedContent(filePath);
     await translateSingleMdToJa(filePath, outputFilePath);
     postProcessFileFrontmatterAliases(outputFilePath, "ja");
+    postProcessFileGithubMentions(outputFilePath);
     // break;
   }
 
