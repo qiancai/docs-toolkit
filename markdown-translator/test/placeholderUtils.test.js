@@ -1,52 +1,34 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { stripDuplicateLinkTextAroundPlaceholders } from "../src/placeholderUtils.js";
+import {
+  createLinkPlaceholderHtml,
+  restorePreservedPlaceholders,
+} from "../src/placeholderUtils.js";
 
-test("stripDuplicateLinkTextAroundPlaceholders removes duplicated link text before a placeholder", () => {
-  const input =
-    "TiDB Cloud {{B-PLACEHOLDER-0-PLACEHOLDER-E}} is based on TiDB {{B-PLACEHOLDER-1-PLACEHOLDER-E}}.";
-  const meta = {
-    0: {
-      kind: "link",
-      text: "TiDB Cloud",
-    },
-    1: {
-      kind: "link",
-      text: "TiDB",
-    },
-  };
-
+test("createLinkPlaceholderHtml wraps translated link text in a restorable anchor", () => {
   assert.equal(
-    stripDuplicateLinkTextAroundPlaceholders(input, meta),
-    "{{B-PLACEHOLDER-0-PLACEHOLDER-E}} is based on {{B-PLACEHOLDER-1-PLACEHOLDER-E}}."
+    createLinkPlaceholderHtml(3, "https://docs.pingcap.com/tidb/stable/overview", "TiDB"),
+    '<a href="https://docs.pingcap.com/tidb/stable/overview" translate="no" data-docs-link-placeholder="3">TiDB</a>'
   );
 });
 
-test("stripDuplicateLinkTextAroundPlaceholders removes duplicated link text after a placeholder", () => {
+test("restorePreservedPlaceholders restores link anchors back to placeholder markers", () => {
   const input =
-    "{{B-PLACEHOLDER-0-PLACEHOLDER-E}}TiDB Cloud clusters are supported.";
-  const meta = {
-    0: {
-      kind: "link",
-      text: "TiDB Cloud",
-    },
-  };
+    '<a href="https://www.pingcap.com/tidb-cloud/" translate="no" data-docs-link-placeholder="0">TiDB Cloud</a>は、<a data-docs-link-placeholder="1" translate="no" href="https://docs.pingcap.com/tidb/stable/overview">TiDB</a>をベースにしています。';
 
   assert.equal(
-    stripDuplicateLinkTextAroundPlaceholders(input, meta),
-    "{{B-PLACEHOLDER-0-PLACEHOLDER-E}} clusters are supported."
+    restorePreservedPlaceholders(input),
+    "{{B-PLACEHOLDER-0-PLACEHOLDER-E}}は、{{B-PLACEHOLDER-1-PLACEHOLDER-E}}をベースにしています。"
   );
 });
 
-test("stripDuplicateLinkTextAroundPlaceholders leaves non-link placeholders unchanged", () => {
-  const input = "<CustomContent>{{B-PLACEHOLDER-3-PLACEHOLDER-E}}</CustomContent>";
-  const meta = {
-    3: {
-      kind: "node",
-      node: { type: "html", value: "<CustomContent>" },
-    },
-  };
+test("restorePreservedPlaceholders keeps generic no-translate markers for non-link placeholders", () => {
+  const input =
+    '<span translate="no">2</span>body<span translate="no">3</span>';
 
-  assert.equal(stripDuplicateLinkTextAroundPlaceholders(input, meta), input);
+  assert.equal(
+    restorePreservedPlaceholders(input),
+    "{{B-PLACEHOLDER-2-PLACEHOLDER-E}}body{{B-PLACEHOLDER-3-PLACEHOLDER-E}}"
+  );
 });
