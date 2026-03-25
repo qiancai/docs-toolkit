@@ -23,6 +23,7 @@ import { gfmFromMarkdown, gfmToMarkdown } from "mdast-util-gfm";
 import { toMarkdown } from "mdast-util-to-markdown";
 
 import { translateSingleText } from "./gcpTranslate.js";
+import { stripDuplicateLinkTextAroundPlaceholders } from "./placeholderUtils.js";
 
 const generateNoTranslateTag = (src) => {
   return `<span translate="no">{{B-NOTRANSLATE-${src}-NOTRANSLATE-E}}</span>`;
@@ -197,7 +198,9 @@ const handleParagraph = async (paragraphNode) => {
   const [output] = await translateSingleText(HTMLStr, "text/html");
   // console.log(translatedHTMLStr);
   const translatedHTMLStr = undoUpdateHTMLNoTransStr(inlineHtml2mdStr(output));
-  const translatedHTMLStrWithBr = updateBrTag(translatedHTMLStr);
+  const translatedHTMLStrWithBr = updateBrTag(
+    stripDuplicateLinkTextAroundPlaceholders(translatedHTMLStr, metadata)
+  );
   const newChildren = retriveByPlaceholder(translatedHTMLStrWithBr, metadata);
   paragraphNode.children = newChildren;
 };
@@ -222,11 +225,14 @@ const paragraphIntegratePlaceholder = async (children) => {
         );
         child.type = "html";
         child.value = generateNoTranslateTag(idx);
-        linkchildCopy.type = "html";
-        linkchildCopy.value = `[${inlineHtml2mdStr(
-          linkHtmlStrInside
-        )}](${hrefValue})`;
-        meta[idx] = linkchildCopy;
+        meta[idx] = {
+          kind: "link",
+          node: {
+            type: "html",
+            value: `[${inlineHtml2mdStr(linkHtmlStrInside)}](${hrefValue})`,
+          },
+          text: inlineHtml2mdStr(linkHtmlStrInside),
+        };
         break;
       case "linkReference":
       case "inlineCode":
@@ -237,7 +243,19 @@ const paragraphIntegratePlaceholder = async (children) => {
         const nodeChildCopy = _.cloneDeep(child);
         child.type = "html";
         child.value = generateNoTranslateTag(idx);
-        meta[idx] = nodeChildCopy;
+        meta[idx] = {
+          kind: "node",
+          node: nodeChildCopy,
+        };
+        break;
+      case "html":
+        const htmlChildCopy = _.cloneDeep(child);
+        child.type = "html";
+        child.value = generateNoTranslateTag(idx);
+        meta[idx] = {
+          kind: "node",
+          node: htmlChildCopy,
+        };
         break;
       default:
         break;
@@ -251,7 +269,10 @@ const retriveByPlaceholder = (resultStr, meta) => {
     if (item.startsWith("{{B-") || item.endsWith("-E}}")) return prev;
     if (item.startsWith("PLACEHOLDER-") && item.endsWith("-PLACEHOLDER")) {
       const originIdx = parseInt(item.replace(/(PLACEHOLDER|-)/g, ""));
-      const originItem = meta[originIdx];
+      const originItem = meta[originIdx]?.node;
+      if (!originItem) {
+        return prev;
+      }
       switch (originItem.type) {
         default:
           prev.push(originItem);
