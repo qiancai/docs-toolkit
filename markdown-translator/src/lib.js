@@ -23,9 +23,19 @@ import { gfmFromMarkdown, gfmToMarkdown } from "mdast-util-gfm";
 import { toMarkdown } from "mdast-util-to-markdown";
 
 import { translateSingleText } from "./gcpTranslate.js";
+import {
+  createLinkPlaceholderHtml,
+  restorePreservedPlaceholders,
+} from "./placeholderUtils.js";
 
 const generateNoTranslateTag = (src) => {
   return `<span translate="no">{{B-NOTRANSLATE-${src}-NOTRANSLATE-E}}</span>`;
+};
+
+const COMPONENT_LIKE_HTML_TAG = /^<\/?[A-Z][A-Za-z0-9]*(\s|>|\/>)/;
+
+const shouldPreserveInlineHtmlNode = (value = "") => {
+  return COMPONENT_LIKE_HTML_TAG.test(value.trim());
 };
 
 const getMds = (src) => {
@@ -177,6 +187,9 @@ const handleFrontMatter = async (yamlNode) => {
 
 const handleHTML = async (htmlNode) => {
   const HTMLStr = htmlNode.value;
+  if (shouldPreserveInlineHtmlNode(HTMLStr)) {
+    return;
+  }
   if (
     !HTMLStr.includes(`<span translate="no">`) &&
     // GCP Glossary will be missing in the title content
@@ -195,9 +208,10 @@ const handleParagraph = async (paragraphNode) => {
   const trimParagraphHtml = trimHtmlTags(paragraphHtml);
   const HTMLStr = updateHTMLNoTransStr(trimParagraphHtml);
   const [output] = await translateSingleText(HTMLStr, "text/html");
-  // console.log(translatedHTMLStr);
-  const translatedHTMLStr = undoUpdateHTMLNoTransStr(inlineHtml2mdStr(output));
-  const translatedHTMLStrWithBr = updateBrTag(translatedHTMLStr);
+  const translatedHTMLStr = restorePreservedPlaceholders(output);
+  const translatedHTMLStrWithBr = updateBrTag(
+    inlineHtml2mdStr(translatedHTMLStr)
+  );
   const newChildren = retriveByPlaceholder(translatedHTMLStrWithBr, metadata);
   paragraphNode.children = newChildren;
 };
@@ -209,10 +223,8 @@ const paragraphIntegratePlaceholder = async (children) => {
     const child = children[idx];
     switch (child.type) {
       case "link":
-        const linkchildCopy = _.cloneDeep(child);
         const linkHtml = await mdSnippet2html(child);
         const linkHtmlStr = trimHtmlTags(linkHtml);
-        // const aTagLeft = /^<[^>]+>/.exec(linkHtmlStr)[0];
         const hrefValue = linkHtmlStr.match(
           /<a\s+(?:[^>]*?\s+)?href=(["'])(.*?)\1/
         )[2];
@@ -220,13 +232,18 @@ const paragraphIntegratePlaceholder = async (children) => {
           trimHtmlTags(linkHtmlStr),
           "text/html"
         );
-        child.type = "html";
-        child.value = generateNoTranslateTag(idx);
-        linkchildCopy.type = "html";
-        linkchildCopy.value = `[${inlineHtml2mdStr(
-          linkHtmlStrInside
-        )}](${hrefValue})`;
-        meta[idx] = linkchildCopy;
+        const translatedLinkText = inlineHtml2mdStr(linkHtmlStrInside);
+        children[idx] = {
+          type: "html",
+          value: createLinkPlaceholderHtml(idx, hrefValue, translatedLinkText),
+        };
+        meta[idx] = {
+          kind: "link",
+          node: {
+            type: "html",
+            value: `[${translatedLinkText}](${hrefValue})`,
+          },
+        };
         break;
       case "linkReference":
       case "inlineCode":
@@ -235,9 +252,28 @@ const paragraphIntegratePlaceholder = async (children) => {
       case "footnote":
       case "footnoteReference":
         const nodeChildCopy = _.cloneDeep(child);
-        child.type = "html";
-        child.value = generateNoTranslateTag(idx);
-        meta[idx] = nodeChildCopy;
+        children[idx] = {
+          type: "html",
+          value: generateNoTranslateTag(idx),
+        };
+        meta[idx] = {
+          kind: "node",
+          node: nodeChildCopy,
+        };
+        break;
+      case "html":
+        if (!shouldPreserveInlineHtmlNode(child.value)) {
+          break;
+        }
+        const htmlChildCopy = _.cloneDeep(child);
+        children[idx] = {
+          type: "html",
+          value: generateNoTranslateTag(idx),
+        };
+        meta[idx] = {
+          kind: "node",
+          node: htmlChildCopy,
+        };
         break;
       default:
         break;
@@ -251,7 +287,10 @@ const retriveByPlaceholder = (resultStr, meta) => {
     if (item.startsWith("{{B-") || item.endsWith("-E}}")) return prev;
     if (item.startsWith("PLACEHOLDER-") && item.endsWith("-PLACEHOLDER")) {
       const originIdx = parseInt(item.replace(/(PLACEHOLDER|-)/g, ""));
-      const originItem = meta[originIdx];
+      const originItem = meta[originIdx]?.node;
+      if (!originItem) {
+        return prev;
+      }
       switch (originItem.type) {
         default:
           prev.push(originItem);
@@ -377,16 +416,6 @@ const updateHTMLNoTransStr = (HTMLStr) => {
   return HTMLStr.replaceAll(`{{B-NOTRANSLATE-`, ``).replaceAll(
     `-NOTRANSLATE-E}}`,
     ``
-  );
-};
-
-const undoUpdateHTMLNoTransStr = (HTMLStr) => {
-  // ...<span translate="no">0</span>...
-  return HTMLStr.replaceAll(
-    /<span translate="no">([0-9]+)<\/span>/g,
-    (_, p1) => {
-      return `{{B-PLACEHOLDER-${p1}-PLACEHOLDER-E}}`;
-    }
   );
 };
 
