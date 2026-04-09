@@ -21,6 +21,7 @@ import { visit } from "unist-util-visit";
 // } from "remark-comment-o";
 
 import { getMdFileList, writeFileSync, handleAstNode } from "./lib.js";
+import { normalizeStandaloneCustomContentIndentation } from "./customContentIndentation.js";
 
 const pSum = {
   sum: 0,
@@ -74,7 +75,9 @@ export const gcpTranslator = async (filePath, outputFilePath) => {
       gfmToMarkdown(),
     ],
   });
-  const result = newFile.replaceAll(/(#+.+)(\\{)(#.+})/g, `$1{$3`);
+  const result = normalizeStandaloneCustomContentIndentation(
+    newFile.replaceAll(/(#+.+)(\\{)(#.+})/g, `$1{$3`)
+  );
   writeFileSync(outputFilePath, result);
 };
 
