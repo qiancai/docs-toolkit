@@ -24,6 +24,7 @@ import { getMdFileList, writeFileSync, handleAstNode } from "./lib.js";
 import { loadVariables, variablesReplace } from "./variables.js";
 import { postProcessFileFrontmatterAliases } from "./frontmatterAliases.js";
 import { postProcessFileGithubMentions } from "./GithubMentions.js";
+import { normalizeStandaloneCustomContentIndentation } from "./customContentIndentation.js";
 
 const pSum = {
   sum: 0,
@@ -77,7 +78,9 @@ const translateSingleMdToJa = async (filePath, outputFilePath) => {
       gfmToMarkdown(),
     ],
   });
-  const result = newFile.replaceAll(/(#+.+)(\\{)(#.+})/g, `$1{$3`);
+  const result = normalizeStandaloneCustomContentIndentation(
+    newFile.replaceAll(/(#+.+)(\\{)(#.+})/g, `$1{$3`)
+  );
   writeFileSync(outputFilePath, result);
 };
 
