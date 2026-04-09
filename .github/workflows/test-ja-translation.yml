@@ -33,19 +33,19 @@ jobs:
       - name: Configure translation credentials
         shell: bash
         env:
-          GCP_KEY: ${{ secrets.GCP_KEY }}
+          GCP_CREDENTIALS_B64: ${{ secrets.GCP_CREDENTIALS_B64 }}
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           GCP_GLOSSARY_ID: ${{ secrets.GCP_GLOSSARY_ID }}
         run: |
           set -euo pipefail
 
-          if [ -z "${GCP_KEY}" ] || [ -z "${GCP_PROJECT_ID}" ] || [ -z "${GCP_GLOSSARY_ID}" ]; then
-            echo "Missing one or more required secrets: GCP_KEY, GCP_PROJECT_ID, GCP_GLOSSARY_ID" >&2
+          if [ -z "${GCP_CREDENTIALS_B64}" ] || [ -z "${GCP_PROJECT_ID}" ] || [ -z "${GCP_GLOSSARY_ID}" ]; then
+            echo "Missing one or more required secrets: GCP_CREDENTIALS_B64, GCP_PROJECT_ID, GCP_GLOSSARY_ID" >&2
             exit 1
           fi
 
           CREDENTIALS_FILE="$RUNNER_TEMP/gcp-key.json"
-          echo "${GCP_KEY}" | base64 --decode > "${CREDENTIALS_FILE}"
+          printf '%s' "${GCP_CREDENTIALS_B64}" | base64 --decode > "${CREDENTIALS_FILE}"
 
           echo "GOOGLE_APPLICATION_CREDENTIALS=${CREDENTIALS_FILE}" >> "$GITHUB_ENV"
           echo "PROJECT_ID=${GCP_PROJECT_ID}" >> "$GITHUB_ENV"
