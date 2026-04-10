@@ -420,6 +420,8 @@ const paragraphIntegratePlaceholder = async (children, translateText) => {
         const hrefValue = linkHtmlStr.match(
           /<a\s+(?:[^>]*?\s+)?href=(["'])(.*?)\1/
         )[2];
+        const restoreLeadingSpaceIfJoined =
+          shouldRestoreLeadingSpaceBeforeIssueLink(children, idx, hrefValue);
         const [linkHtmlStrInside] = await translateText(
           trimHtmlTags(linkHtmlStr),
           "text/html"
@@ -434,11 +436,7 @@ const paragraphIntegratePlaceholder = async (children, translateText) => {
         );
         meta[linkPlaceholderId] = {
           kind: "link",
-          restoreLeadingSpaceIfJoined: shouldRestoreLeadingSpaceBeforeIssueLink(
-            children,
-            idx,
-            hrefValue
-          ),
+          restoreLeadingSpaceIfJoined,
           node: {
             type: "html",
             value: `[${translatedLinkText}](${hrefValue})`,

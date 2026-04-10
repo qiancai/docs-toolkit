@@ -239,3 +239,70 @@ test("translatePhrasingChildren does not leak generic placeholder ids when the t
   assert.doesNotMatch(restored, /\{\{B-PLACEHOLDER-\d+-PLACEHOLDER-E\}\}/);
   assert.doesNotMatch(restored, /<span\b[^>]*translate=["']no["'][^>]*>/i);
 });
+
+test("translatePhrasingChildren restores leading space before trailing GitHub issue links", async () => {
+  const issueUrl = "https://github.com/pingcap/tiflow/issues/12277";
+  const userUrl = "https://github.com/zurakutsia";
+  const ast = parseMarkdown(
+    `Fix the issue that changefeed tasks might get stuck when using Azure Blob Storage as the downstream [#12277](${issueUrl}) @[zurakutsia](${userUrl})`
+  );
+  const paragraph = ast.children.find((node) => node.type === "paragraph");
+
+  const translateText = async (input) => {
+    if (input === "#12277") {
+      return ["#12277"];
+    }
+    if (input === "zurakutsia") {
+      return ["zurakutsia"];
+    }
+    if (input.includes('data-docs-link-placeholder="0"')) {
+      return [
+        `Azure Blob Storage をダウンストリームとして使用している場合、changefeed タスクが停止する可能性がある問題を修正します${createLinkPlaceholderHtml(
+          0,
+          issueUrl,
+          "#12277"
+        )} @${createLinkPlaceholderHtml(1, userUrl, "zurakutsia")}`,
+      ];
+    }
+
+    throw new Error(`Unexpected translation input: ${input}`);
+  };
+
+  const translatedChildren = await translatePhrasingChildren(
+    structuredClone(paragraph.children),
+    translateText
+  );
+  const restored = paragraphToMarkdown(translatedChildren);
+
+  assert.equal(
+    restored,
+    `Azure Blob Storage をダウンストリームとして使用している場合、changefeed タスクが停止する可能性がある問題を修正します [#12277](${issueUrl}) @[zurakutsia](${userUrl})`
+  );
+});
+
+test("translatePhrasingChildren does not add spaces before non-trailing GitHub issue links", async () => {
+  const issueUrl = "https://github.com/pingcap/tiflow/issues/12277";
+  const ast = parseMarkdown(`See [#12277](${issueUrl}) for details.`);
+  const paragraph = ast.children.find((node) => node.type === "paragraph");
+
+  const translateText = async (input) => {
+    if (input === "#12277") {
+      return ["#12277"];
+    }
+    if (input.includes('data-docs-link-placeholder="0"')) {
+      return [
+        `参照${createLinkPlaceholderHtml(0, issueUrl, "#12277")}詳細。`,
+      ];
+    }
+
+    throw new Error(`Unexpected translation input: ${input}`);
+  };
+
+  const translatedChildren = await translatePhrasingChildren(
+    structuredClone(paragraph.children),
+    translateText
+  );
+  const restored = paragraphToMarkdown(translatedChildren);
+
+  assert.equal(restored, `参照[#12277](${issueUrl})詳細。`);
+});
